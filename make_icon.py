@@ -14,6 +14,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from core.utils import enable_utf8_stdout
+
 #: 以 256 设计、按 1024 渲染母版，再等比缩放出各尺寸，避免放大发虚
 DESIGN_SIZE = 256
 MASTER_SIZE = 1024
@@ -79,6 +81,7 @@ def write_iconset(master: Image.Image, directory: Path) -> list[Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    enable_utf8_stdout()
     args = list(sys.argv[1:] if argv is None else argv)
     base = Path(args[0]).parent if args else Path(__file__).resolve().parent / "assets"
     base.mkdir(parents=True, exist_ok=True)

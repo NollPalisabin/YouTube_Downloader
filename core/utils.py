@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import re
+import sys
 
 _UNITS = ("B", "KB", "MB", "GB", "TB", "PB")
 _INVALID_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
@@ -20,7 +21,25 @@ __all__ = [
     "sanitize_filename",
     "truncate_text",
     "QuietLogger",
+    "enable_utf8_stdout",
 ]
+
+
+def enable_utf8_stdout() -> None:
+    """让命令行脚本能安全打印中文。
+
+    Windows 的 CI runner / 旧控制台默认是 cp1252 之类的本地编码，直接 print
+    中文会抛 ``UnicodeEncodeError``（打包脚本就踩过）。在 CLI 入口调用一次即可。
+    """
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):  # 已被重定向/关闭时忽略
+            pass
 
 
 class QuietLogger:

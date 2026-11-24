@@ -15,6 +15,7 @@ rem ===========================================================================
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
+set "PYTHONIOENCODING=utf-8"
 set "APPNAME=YouTubeDownloader"
 set "CONSOLE_FLAG=--windowed"
 if /i "%~1"=="console" set "CONSOLE_FLAG=--console"

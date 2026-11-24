@@ -24,6 +24,8 @@ import traceback
 from pathlib import Path
 from typing import IO
 
+from core.utils import enable_utf8_stdout
+
 APP_TITLE_FALLBACK = "YouTube 视频下载器"
 _LOG_FILENAME = "app.log"
 
@@ -401,6 +403,7 @@ def _prepare_dotnet(logging_module) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    enable_utf8_stdout()
     multiprocessing.freeze_support()
 
     args = list(sys.argv[1:] if argv is None else argv)

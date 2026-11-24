@@ -22,6 +22,7 @@ import argparse
 import base64
 import json
 import os
+import pathlib
 import subprocess
 import sys
 import time
@@ -29,6 +30,9 @@ import zipfile
 from pathlib import Path
 
 import requests
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+from core.utils import enable_utf8_stdout  # noqa: E402
 
 API = "https://api.github.com"
 WORKFLOW_FILE = "build.yml"
@@ -240,6 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", default=str(DEFAULT_OUT), help="产物下载目录")
     parser.add_argument("--message", default="Update via ci_build.py")
     args = parser.parse_args(argv)
+    enable_utf8_stdout()
 
     files = tracked_files()
     total_mb = sum(f.stat().st_size for f in files) / 1048576

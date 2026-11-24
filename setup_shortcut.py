@@ -18,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import desktop  # noqa: E402
+from core.utils import enable_utf8_stdout  # noqa: E402
 import paths  # noqa: E402
 
 
@@ -41,6 +42,7 @@ def _guess_exe(explicit: str | None) -> Path | None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    enable_utf8_stdout()
     parser = argparse.ArgumentParser(
         description="在用户桌面创建 YouTube 下载器快捷方式",
     )
