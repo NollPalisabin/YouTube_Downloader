@@ -17,7 +17,8 @@ import config  # noqa: E402
 def test_default_download_dir_is_inside_project(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("YTDL_DOWNLOAD_DIR", raising=False)
     monkeypatch.delenv("YOUTUBE_DOWNLOAD_DIR", raising=False)
-    assert config.get_download_dir() == (config.BASE_DIR / "downloads").resolve()
+    # Windows 落在项目/部署目录旁的 downloads；macOS/Linux 落在 ~/Downloads
+    assert config.get_download_dir() == config.paths.downloads_dir().resolve()
 
 
 def test_download_dir_env_override(monkeypatch: pytest.MonkeyPatch, tmp_workdir: Path) -> None:
@@ -260,6 +261,7 @@ def test_settings_override_download_dir(
     assert config.get_download_dir() == target.resolve()
 
 
+@pytest.mark.skipif(not config.paths.is_windows(), reason="仅 Windows 的下载目录跟随 exe")
 def test_default_download_dir_is_deployment_dir(
     monkeypatch: pytest.MonkeyPatch, tmp_workdir: Path
 ) -> None:
@@ -272,6 +274,7 @@ def test_default_download_dir_is_deployment_dir(
     assert config.get_download_dir() == (exe_dir / "downloads").resolve()
 
 
+@pytest.mark.skipif(not config.paths.is_windows(), reason="仅 Windows 有 app_dir 下的主目录")
 def test_unwritable_primary_falls_back_to_user_downloads(
     monkeypatch: pytest.MonkeyPatch, tmp_workdir: Path
 ) -> None:

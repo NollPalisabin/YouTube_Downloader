@@ -47,7 +47,10 @@ def test_frozen_onedir_paths(
     assert paths.resource_root() == exe_dir / "_internal"
     assert paths.executable_path() == exe_dir / paths.EXE_FILENAME
     # 可写数据落在 exe 同级；只读资源落在 _internal
-    assert paths.downloads_dir() == exe_dir / "downloads"
+    if paths.is_windows():
+        assert paths.downloads_dir() == exe_dir / "downloads"
+    else:
+        assert paths.downloads_dir() == Path.home() / "Downloads" / paths.APP_NAME
     assert paths.logs_dir() == exe_dir / "logs"
     assert paths.bundled_bin_dirs() == [exe_dir / "_internal" / "bin", exe_dir / "bin"]
 

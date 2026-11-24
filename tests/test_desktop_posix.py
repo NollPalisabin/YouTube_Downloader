@@ -118,7 +118,7 @@ def test_shortcut_exists_handles_dangling_link(
     desktop.mkdir()
     assert desktop_posix.shortcut_exists(desktop) is False
 
-    link = desktop / desktop_posix.SHORTCUT_NAME
+    link = desktop / desktop_posix._default_name()
     link.write_text("x", encoding="utf-8")
     assert desktop_posix.shortcut_exists(desktop) is True
 
