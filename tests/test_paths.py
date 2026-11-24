@@ -51,7 +51,11 @@ def test_frozen_onedir_paths(
         assert paths.downloads_dir() == exe_dir / "downloads"
     else:
         assert paths.downloads_dir() == Path.home() / "Downloads" / paths.APP_NAME
-    assert paths.logs_dir() == exe_dir / "logs"
+    if paths.is_windows():
+        assert paths.logs_dir() == exe_dir / "logs"
+    else:
+        # macOS/Linux：日志与设置放用户数据目录，不写进 .app / 程序目录
+        assert paths.logs_dir() == paths.data_dir() / "logs"
     assert paths.bundled_bin_dirs() == [exe_dir / "_internal" / "bin", exe_dir / "bin"]
 
 
