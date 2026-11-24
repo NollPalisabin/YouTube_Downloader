@@ -45,3 +45,6 @@ assets/app.iconset/
 
 # CI 产物下载目录
 dist-ci/
+
+# 打包产物副本（本地交付用）
+deliverables/

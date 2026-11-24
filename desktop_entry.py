@@ -35,6 +35,7 @@ HELP_TEXT = """用法: YouTubeDownloader.exe [选项]
   --browser           强制浏览器模式（起服务 + 打开默认浏览器 + 宿主窗口）
   --webview           强制桌面窗口模式（环境不支持时会报错退出）
   --self-check        打印环境自检（含 FFmpeg 来源），结果写入 logs\\app.log
+  --check-imports     验证 ui/core 等模块已打进产物（打包后必跑）
   --smoke-test        端到端自检：解析 + 下载最小清晰度 + FFmpeg 合并
   --create-shortcut   重新创建桌面快捷方式
   --help              显示本帮助
@@ -349,6 +350,40 @@ def _run_webview_mode(script: Path) -> None:
     )
 
 
+def _run_import_check() -> int:
+    """验证打包产物里界面/业务模块都在。
+
+    ``app.py`` 是作为**数据文件**由 Streamlit 在运行时 exec 的，PyInstaller 不会
+    去分析它的 import；一旦构建脚本漏了 ``--collect-submodules core/ui``，
+    界面会在浏览器里报 ``ModuleNotFoundError: No module named 'ui'``。
+    这个自检就是针对该情况的回归守卫。
+    """
+    modules = [
+        "config",
+        "paths",
+        "desktop",
+        "core.extractor",
+        "core.downloader",
+        "core.utils",
+        "ui.components",
+        "ui.styles",
+    ]
+    failures: list[str] = []
+    for name in modules:
+        try:
+            __import__(name)
+        except Exception as exc:  # noqa: BLE001
+            failures.append(f"{name}: {type(exc).__name__}: {exc}")
+
+    if failures:
+        print("IMPORT-CHECK FAILED")
+        for item in failures:
+            print("  -", item)
+        return 1
+    print(f"IMPORT-CHECK OK ({len(modules)} modules)")
+    return 0
+
+
 def _run_create_shortcut() -> int:
     import desktop
     import paths
@@ -418,6 +453,8 @@ def main(argv: list[str] | None = None) -> int:
     if "--help" in args or "-h" in args:
         print(HELP_TEXT)
         return 0
+    if "--check-imports" in args:
+        return _run_import_check()
     if "--self-check" in args:
         return _run_self_check()
     if "--smoke-test" in args:

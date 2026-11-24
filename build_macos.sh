@@ -66,6 +66,12 @@ ICON_ARG=""
   --copy-metadata altair \
   --collect-all yt_dlp \
   --collect-all webview \
+  --collect-submodules core \
+  --collect-submodules ui \
+  --hidden-import config \
+  --hidden-import paths \
+  --hidden-import desktop \
+  --hidden-import desktop_posix \
   --add-data "app.py:." \
   --add-data "vendor/bin-macos:bin" \
   --add-data "assets:assets" \
@@ -102,8 +108,17 @@ if ! find "$APP" -name ffmpeg -type f | grep -q .; then
   exit 14
 fi
 
+# 关键回归守卫：app.py 是运行时 exec 的数据文件，PyInstaller 不会分析它的 import，
+# 必须实际跑一次产物里的 --check-imports 才能确认 ui/core 等模块真的被打进去了。
+echo "      运行导入自检（验证 ui/core 已打包）"
+if ! "$APP/Contents/MacOS/$APPNAME" --check-imports; then
+  echo "[ERROR] 产物缺少 Python 模块（检查 --collect-submodules core/ui）" >&2
+  exit 15
+fi
+
 echo
 echo "构建完成: $APP"
 echo "自检:   \"$APP/Contents/MacOS/$APPNAME\" --self-check"
+echo "导入:   \"$APP/Contents/MacOS/$APPNAME\" --check-imports"
 echo "冒烟:   \"$APP/Contents/MacOS/$APPNAME\" --smoke-test"
 echo "分发前请阅读 DEPLOY.md 的「macOS」一节（Gatekeeper / 架构 / 签名）"

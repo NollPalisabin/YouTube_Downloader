@@ -54,6 +54,15 @@ def test_flag_is_cleared_when_webview_works() -> None:
     assert desktop_entry._should_try_webview("auto") is True
 
 
+def test_import_check_passes_in_source_mode() -> None:
+    """打包后必跑的自检：确认 ui/core 等模块真的在产物里。
+
+    源码模式下这些模块本来就在，这里主要防止自检函数本身写错
+    （例如模块名拼错导致误报）。
+    """
+    assert desktop_entry._run_import_check() == 0
+
+
 def test_survives_broken_settings_file(monkeypatch: pytest.MonkeyPatch, tmp_workdir: Path) -> None:
     broken = tmp_workdir / "settings.json"
     broken.write_text("not json at all", encoding="utf-8")

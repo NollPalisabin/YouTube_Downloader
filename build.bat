@@ -75,6 +75,12 @@ if not exist "dist\%APPNAME%\_internal\app.py"       goto :err_verify
 if not exist "dist\%APPNAME%\_internal\bin\ffmpeg.exe"  goto :err_verify
 if not exist "dist\%APPNAME%\_internal\bin\ffprobe.exe" goto :err_verify
 
+rem app.py is exec'd at runtime, so PyInstaller cannot see its imports.
+rem Run the packaged binary to prove ui/core were actually bundled.
+echo       Running import self-check (ui/core bundled?)...
+"dist\%APPNAME%\%APPNAME%.exe" --check-imports
+if errorlevel 1 goto :err_imports
+
 echo.
 echo Build finished: dist\%APPNAME%\
 echo Next: copy the whole "dist\%APPNAME%" folder to D:\YouTube_Downloader\
