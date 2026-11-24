@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Tests and caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local environment artifacts (sandbox/install scratch dirs)
+.piptmp/
+.pipcache/
+.pipfix/
+.runtmp/
+tests/.tmp/
+
+# Download artifacts (keep the placeholder)
+downloads/*
+!downloads/.gitkeep
+
+# Streamlit local secrets
+.streamlit/secrets.toml
+
+# Packaging artifacts
+build/
+dist/
+*.spec
+vendor/
+bin/
+logs/
+settings.json
+settings.json.tmp
+assets/icon_preview.png
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Generated icons (make_icon.py 生成)
+assets/app.iconset/
+
+# CI 产物下载目录
+dist-ci/

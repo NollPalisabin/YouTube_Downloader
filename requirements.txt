@@ -1,0 +1,12 @@
+# 运行依赖（Python 3.11+）
+# 安装：python -m pip install -r requirements.txt
+
+# Web 界面
+streamlit>=1.39,<2.0
+
+# 下载核心：解析与下载全部交给 yt-dlp，不自研下载逻辑
+# YouTube 前端频繁变动，建议定期 `pip install -U yt-dlp`
+yt-dlp>=2024.12.13
+
+# 说明：FFmpeg 不通过 pip 安装，由 config.py 自动检测系统安装；
+# 未安装时界面会给出明确提示与安装指引。

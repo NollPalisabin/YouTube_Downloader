@@ -1,0 +1,8 @@
+# 打包与桌面窗口层依赖（只有开发者在构建 exe 时需要；最终用户不需要 Python 环境）
+-r requirements.txt
+
+# 桌面窗口（pywebview 包装）+ 其 PyInstaller 集成
+streamlit-desktop-app>=0.3.4,<0.4
+
+# 打包工具
+pyinstaller>=6.11.1,<7.0

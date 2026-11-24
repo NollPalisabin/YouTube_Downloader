@@ -1,0 +1,135 @@
+name: build
+
+# 手动触发，或打 tag（v1.2.3）时构建双平台产物
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  windows:
+    name: Windows (onedir)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Fetch FFmpeg (Windows essentials)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force vendor\bin | Out-Null
+          $zip = Join-Path $env:TEMP "ffmpeg.zip"
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile $zip
+          $out = Join-Path $env:TEMP "ffmpeg"
+          Expand-Archive -Path $zip -DestinationPath $out -Force
+          Get-ChildItem $out -Recurse -Filter ffmpeg.exe  | Select-Object -First 1 | Copy-Item -Destination vendor\bin\ffmpeg.exe
+          Get-ChildItem $out -Recurse -Filter ffprobe.exe | Select-Object -First 1 | Copy-Item -Destination vendor\bin\ffprobe.exe
+          Get-ChildItem vendor\bin | Select-Object Name, Length
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Build
+        shell: cmd
+        run: build.bat
+
+      - name: Smoke test the packaged exe
+        shell: pwsh
+        run: |
+          $exe = "dist\YouTubeDownloader\YouTubeDownloader.exe"
+          & $exe --self-check
+          Get-Content "dist\YouTubeDownloader\logs\app.log" -Encoding utf8 | Select-Object -Last 15
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-onedir
+          path: dist/YouTubeDownloader
+          if-no-files-found: error
+
+  macos:
+    name: macOS (app bundle)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Fetch FFmpeg (static binary from imageio-ffmpeg)
+        run: |
+          python -m pip install imageio-ffmpeg
+          mkdir -p vendor/bin-macos
+          python - <<'PY'
+          import shutil, imageio_ffmpeg
+          shutil.copy(imageio_ffmpeg.get_ffmpeg_exe(), "vendor/bin-macos/ffmpeg")
+          print("ffmpeg copied")
+          PY
+          chmod +x vendor/bin-macos/ffmpeg
+          vendor/bin-macos/ffmpeg -version | head -n 1
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Build .app
+        run: bash build_macos.sh
+
+      - name: Package for distribution
+        run: ditto -c -k --sequesterRsrc --keepParent dist/YouTubeDownloader.app dist/YouTubeDownloader-macos.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: dist/YouTubeDownloader-macos.zip
+          if-no-files-found: error
+
+  # Intel Mac 需要单独的 x86_64 构建（arm64 产物在 Intel 上跑不了）。
+  # macos-13 是最后一个 x86_64 runner，GitHub 后续可能下线，所以设置
+  # continue-on-error，避免它失败时把整个 workflow 判为失败。
+  macos-intel:
+    name: macOS Intel (x86_64, optional)
+    runs-on: macos-13
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Fetch FFmpeg (static binary from imageio-ffmpeg)
+        run: |
+          python -m pip install imageio-ffmpeg
+          mkdir -p vendor/bin-macos
+          python - <<'PY'
+          import shutil, imageio_ffmpeg
+          shutil.copy(imageio_ffmpeg.get_ffmpeg_exe(), "vendor/bin-macos/ffmpeg")
+          print("ffmpeg copied")
+          PY
+          chmod +x vendor/bin-macos/ffmpeg
+
+      - name: Build .app
+        run: bash build_macos.sh
+
+      - name: Package for distribution
+        run: ditto -c -k --sequesterRsrc --keepParent dist/YouTubeDownloader.app dist/YouTubeDownloader-macos-intel.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-app-intel
+          path: dist/YouTubeDownloader-macos-intel.zip
+          if-no-files-found: error
