@@ -72,11 +72,13 @@ class Client:
 
     def call(self, method: str, path: str, **kwargs):
         url = path if path.startswith("http") else f"{API}{path}"
-        for attempt in range(1, 4):
+        # 400/429/5xx 在弱网下多半是被截断或限流，值得重试
+        retryable = {400, 429, 500, 502, 503, 504}
+        for attempt in range(1, 6):
             try:
                 response = self.session.request(method, url, timeout=60, **kwargs)
             except requests.RequestException as exc:
-                if attempt == 3:
+                if attempt == 5:
                     raise CiError(f"{method} {url} 网络失败：{exc}") from exc
                 time.sleep(2 * attempt)
                 continue
@@ -88,10 +90,10 @@ class Client:
             if response.status_code in (401, 403):
                 raise CiError(
                     f"{method} {url} -> {response.status_code}：{response.text[:300]}\n"
-                    "检查 token 权限（classic token 需 repo + workflow；fine-grained 需 Contents/Actions 写权限）"
+                    "检查 token 权限（classic token 需 repo + workflow；fine-grained 需 Contents/Actions/Workflows 写权限）"
                 )
-            if response.status_code == 422 and attempt < 3:
-                time.sleep(1)
+            if response.status_code in retryable and attempt < 5:
+                time.sleep(2 * attempt)
                 continue
             raise CiError(f"{method} {url} -> {response.status_code}：{response.text[:500]}")
         raise CiError("unreachable")

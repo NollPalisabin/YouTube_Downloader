@@ -1,0 +1,24 @@
+name: probe-macos
+
+# 诊断用：验证当前仓库/账号能否分配到 macOS runner。
+# 手动触发；跑通后可以删除本文件。
+on:
+  workflow_dispatch:
+
+jobs:
+  probe-arm64:
+    runs-on: macos-14
+    steps:
+      - name: 基本信息
+        run: |
+          uname -a
+          sw_vers
+          python3 -V
+
+  probe-latest:
+    runs-on: macos-latest
+    steps:
+      - name: 基本信息
+        run: |
+          uname -m
+          xcodebuild -version || true

@@ -182,8 +182,8 @@ def create_shortcut(
         raise ShortcutError(f"调用 PowerShell 失败：{exc}") from exc
 
     if proc.returncode != 0 or not link.is_file():
-        detail = (proc.stderr or proc.stdout or "").strip().splitlines()
-        tail = detail[-1] if detail else f"exit={proc.returncode}"
+        detail = [line.strip() for line in (proc.stderr or proc.stdout or "").splitlines() if line.strip()]
+        tail = " | ".join(detail[-3:]) if detail else f"exit={proc.returncode}"
         raise ShortcutError(f"创建快捷方式失败：{tail}")
 
     return link

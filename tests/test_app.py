@@ -21,6 +21,22 @@ from core.extractor import QualityOption, VideoInfo  # noqa: E402
 APP_PATH = ROOT / "app.py"
 
 
+@pytest.fixture(autouse=True)
+def _fake_ffmpeg(monkeypatch: pytest.MonkeyPatch) -> None:
+    """测试不应依赖宿主机是否装了 FFmpeg。
+
+    没有 FFmpeg 时界面会禁用「开始下载」，导致 AppTest 无法点击；
+    这里统一返回一个假的检测结果，让交互路径可测。
+    """
+    info = config.FFmpegInfo(
+        ffmpeg=Path("C:/fake/bin/ffmpeg.exe"),
+        ffprobe=Path("C:/fake/bin/ffprobe.exe"),
+        version="9.9-test",
+        source="bundled:C:/fake/bin",
+    )
+    monkeypatch.setattr(config, "detect_ffmpeg", lambda refresh=False: info)
+
+
 def _video_quality() -> QualityOption:
     return QualityOption(
         label="1080p60",
