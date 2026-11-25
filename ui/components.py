@@ -33,6 +33,53 @@ __all__ = [
 # --------------------------------------------------------------------------- #
 # 顶部与侧栏
 # --------------------------------------------------------------------------- #
+def _render_cookies_panel() -> None:
+    """侧栏：cookies 配置（从浏览器读取 / 上传 cookies.txt）。"""
+    st.caption(config.cookies_status())
+
+    labels = {"": "不使用"}
+    labels.update({key: name for key, name in config.COOKIE_BROWSER_LABELS.items()})
+    options = list(labels)
+    current = config.get_cookies_browser() or ""
+    choice = st.selectbox(
+        "从浏览器读取 cookies",
+        options=options,
+        index=options.index(current) if current in options else 0,
+        format_func=lambda key: labels[key],
+        key="cookies_browser_select",
+        help="优先推荐：浏览器已登录 YouTube 时，直接读取它的 cookies。"
+             "Chrome/Edge 读取时通常需要先完全退出浏览器；Safari 会请求钥匙串授权。",
+    )
+    if choice != current:
+        try:
+            config.set_cookies_browser(choice or None)
+        except ValueError as exc:
+            st.error(f"保存失败：{exc}")
+        else:
+            st.rerun()
+
+    uploaded = st.file_uploader(
+        "或上传 cookies.txt（Netscape 格式）",
+        type=["txt"],
+        key="cookies_upload",
+        help="浏览器插件（如 Get cookies.txt LOCALLY）可导出该格式。上传后会自动启用。",
+    )
+    if uploaded is not None:
+        try:
+            saved = config.save_cookies_file(uploaded.getvalue())
+        except (ValueError, OSError) as exc:
+            st.error(f"导入失败：{exc}")
+        else:
+            st.success(f"已导入：{saved.name}")
+            st.rerun()
+
+    if config.get_cookies_file() is not None:
+        if st.button("清除已导入的 cookies", use_container_width=True, key="clear_cookies"):
+            if config.remove_cookies_file():
+                st.success("已清除")
+                st.rerun()
+
+
 def page_header() -> None:
     st.markdown(
         f"""
@@ -105,6 +152,10 @@ def sidebar_panel() -> None:
                 st.error(f"创建失败：{exc}")
             else:
                 st.success(f"已创建：{link}")
+
+        st.divider()
+        st.markdown("#### 访问凭据（遇到人机验证时用）")
+        _render_cookies_panel()
 
         st.divider()
         st.markdown("#### 使用步骤")

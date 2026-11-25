@@ -247,15 +247,103 @@ PROGRESS_POLL_INTERVAL = 0.4   # 秒，UI 刷新进度的轮询间隔
 MAX_LISTED_FORMATS = 40        # 清晰度列表最多展示多少条
 
 COOKIES_ENV_VARS = ("YTDL_COOKIES_FILE", "YOUTUBE_COOKIES_FILE")
+COOKIES_FILENAME = paths.COOKIES_FILENAME
+#: 支持从这些浏览器直接读取 cookies（yt-dlp 的 cookiesfrombrowser）
+COOKIE_BROWSERS = ("safari", "chrome", "edge", "firefox")
+COOKIE_BROWSER_LABELS = {
+    "safari": "Safari",
+    "chrome": "Chrome",
+    "edge": "Edge",
+    "firefox": "Firefox",
+}
+
+
+def cookies_file_path() -> Path:
+    """应用自带的 cookies 文件位置（界面里上传后保存在这里）。"""
+    return paths.data_dir() / COOKIES_FILENAME
 
 
 def get_cookies_file() -> Path | None:
-    """可选：Netscape 格式 cookies 文件，用于年龄限制 / 人机验证场景。"""
+    """cookies 文件：环境变量优先，其次是界面里上传并保存到数据目录的那份。"""
     override = _first_env(COOKIES_ENV_VARS)
-    if not override:
-        return None
-    path = Path(os.path.expandvars(override)).expanduser()
-    return path if path.is_file() else None
+    if override:
+        path = Path(os.path.expandvars(override)).expanduser()
+        return path if path.is_file() else None
+
+    local = cookies_file_path()
+    return local if local.is_file() else None
+
+
+def get_cookies_browser() -> str | None:
+    """界面里选择的“从浏览器读取”的浏览器名。"""
+    value = paths.read_settings().get("cookies_from_browser")
+    if isinstance(value, str) and value.strip().lower() in COOKIE_BROWSERS:
+        return value.strip().lower()
+    return None
+
+
+def set_cookies_browser(browser: str | None) -> None:
+    """保存/清除浏览器选择（None 表示不使用）。"""
+    value = (browser or "").strip().lower() or None
+    if value is not None and value not in COOKIE_BROWSERS:
+        raise ValueError(f"不支持的浏览器：{browser}")
+    paths.write_settings(cookies_from_browser=value)
+
+
+def save_cookies_file(data: bytes) -> Path:
+    """保存用户上传的 cookies.txt，并做一次基本的 Netscape 格式校验。"""
+    text = data.decode("utf-8", "replace")
+    if not text.strip():
+        raise ValueError("文件是空的")
+    if "\t" not in text and "# Netscape HTTP Cookie File" not in text:
+        raise ValueError("看起来不是 Netscape 格式的 cookies.txt（缺少制表符分隔列）")
+
+    target = cookies_file_path()
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+    except OSError as exc:
+        raise OSError(f"无法写入 {target}：{exc}") from exc
+    return target
+
+
+def remove_cookies_file() -> bool:
+    target = cookies_file_path()
+    try:
+        if target.is_file():
+            target.unlink()
+            return True
+    except OSError:
+        return False
+    return False
+
+
+def cookie_options() -> dict[str, object]:
+    """给 yt-dlp 的 cookies 参数。
+
+    优先级：cookies 文件（环境变量或界面导入）> 从浏览器读取。
+    两者都在时用文件：行为更可预测（浏览器库可能被占用或加密）。
+    """
+    path = get_cookies_file()
+    if path is not None:
+        return {"cookiefile": str(path)}
+
+    browser = get_cookies_browser()
+    if browser is not None:
+        return {"cookiesfrombrowser": (browser,)}
+
+    return {}
+
+
+def cookies_status() -> str:
+    """给界面显示的一句状态描述。"""
+    path = get_cookies_file()
+    if path is not None:
+        return f"已启用 cookies 文件：{path}"
+    browser = get_cookies_browser()
+    if browser is not None:
+        return f"已启用：从 {COOKIE_BROWSER_LABELS.get(browser, browser)} 读取 cookies"
+    return "未配置（遇到人机验证时需要）"
 
 
 # --------------------------------------------------------------------------- #

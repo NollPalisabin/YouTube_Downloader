@@ -307,13 +307,13 @@ _ERROR_PATTERNS: tuple[tuple[str, str, str | None], ...] = (
     (
         r"confirm you'?re not a bot|sign in to confirm",
         "YouTube 要求人机验证（反爬虫）。",
-        "导出浏览器 cookies 为 Netscape 格式，设置环境变量 "
-        "YTDL_COOKIES_FILE 指向该文件后重启应用。",
+        "打开左侧栏「访问凭据」，选择从浏览器读取 cookies，或上传导出的 cookies.txt，"
+        "然后重新点「解析」。",
     ),
     (
         r"age[- ]?restricted|confirm your age|inappropriate for some users",
         "该视频有年龄限制，需要登录后才能访问。",
-        "同样可通过 YTDL_COOKIES_FILE 提供登录态 cookies。",
+        "在左侧栏「访问凭据」里配置 cookies 后重试。",
     ),
     (r"private video", "该视频是私有视频，无法下载。", None),
     (
@@ -384,9 +384,8 @@ def _base_options() -> dict[str, Any]:
         "cachedir": False,
         "logger": QuietLogger(),
     }
-    cookies = config.get_cookies_file()
-    if cookies is not None:
-        options["cookiefile"] = str(cookies)
+    if config.cookie_options():
+        options.update(config.cookie_options())
     return options
 
 

@@ -226,9 +226,9 @@ class DownloadJob:
             "no_warnings": True,
             "logger": QuietLogger(),
         }
-        cookies = config.get_cookies_file()
-        if cookies is not None:
-            options["cookiefile"] = str(cookies)
+        cookie_opts = config.cookie_options()
+        if cookie_opts:
+            options.update(cookie_opts)
 
         if self.quality.is_audio_only:
             options["postprocessors"] = [

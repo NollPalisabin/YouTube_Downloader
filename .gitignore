@@ -48,3 +48,6 @@ dist-ci/
 
 # 打包产物副本（本地交付用）
 deliverables/
+
+# 本地 cookies（含登录态，绝不能提交）
+cookies.txt

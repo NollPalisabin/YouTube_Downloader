@@ -60,6 +60,7 @@ EXE_FILENAME = f"{APP_NAME}.exe" if os.name == "nt" else APP_NAME
 APP_BUNDLE_NAME = f"{APP_NAME}.app"
 
 SETTINGS_FILENAME = "settings.json"
+COOKIES_FILENAME = "cookies.txt"
 DOWNLOADS_DIRNAME = "downloads"
 LOGS_DIRNAME = "logs"
 BUNDLE_BIN_DIRNAME = "bin"

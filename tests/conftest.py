@@ -50,8 +50,11 @@ def tmp_workdir() -> Iterator[Path]:
 
 @pytest.fixture(autouse=True)
 def _isolate_user_state(monkeypatch: pytest.MonkeyPatch, tmp_workdir: Path) -> Iterator[None]:
-    """每个用例都在独立的 settings.json + 干净环境变量下运行。"""
+    """每个用例都在独立的 settings.json / cookies 文件 + 干净环境变量下运行。"""
     monkeypatch.setenv("YTDL_SETTINGS_FILE", str(tmp_workdir / "settings.json"))
+    # cookies 文件默认落在 data_dir（开发模式下就是项目根），必须隔离；
+    # 否则某个用例写下的 cookies.txt 会让后续用例误判"已配置 cookies"。
+    monkeypatch.setattr(config, "cookies_file_path", lambda: tmp_workdir / "cookies.txt")
     for name in _USER_ENV_VARS:
         monkeypatch.delenv(name, raising=False)
     config.reset_download_dir_cache()
