@@ -192,19 +192,33 @@ def dispatch(client: Client, owner: str, name: str) -> None:
                 json={"ref": "main"})
 
 
-def wait_for_run(client: Client, owner: str, name: str, *, timeout: int) -> dict:
+def wait_for_run(client: Client, owner: str, name: str, *, timeout: int,
+                 since: float | None = None) -> dict:
+    """等待本次 dispatch 触发的那一条 run。
+
+    ``since``（dispatch 前的 Unix 时间戳）用来排除历史 run；否则只看
+    "最新的一条 workflow_dispatch" 会把上一次已完成的 run 误认成本次构建。
+    """
     deadline = time.time() + timeout
-    run = None
     while time.time() < deadline:
         runs = client.json("GET", f"/repos/{owner}/{name}/actions/runs?per_page=10")
-        if runs and runs.get("workflow_runs"):
-            candidates = [r for r in runs["workflow_runs"]
-                          if r.get("event") == "workflow_dispatch" and r.get("head_branch") == "main"]
-            if candidates:
-                run = candidates[0]
-                print(f"  run #{run['run_number']} 状态={run['status']} 结论={run.get('conclusion')}")
-                if run["status"] == "completed":
-                    return run
+        candidates: list[dict] = []
+        for run in (runs or {}).get("workflow_runs", []):
+            if run.get("event") != "workflow_dispatch" or run.get("head_branch") != "main":
+                continue
+            created = run.get("created_at") or ""
+            try:
+                stamp = time.mktime(time.strptime(created, "%Y-%m-%dT%H:%M:%SZ")) - time.timezone
+            except ValueError:
+                stamp = 0.0
+            if since is not None and stamp < since - 120:  # 容忍 2 分钟时钟偏差
+                continue
+            candidates.append(run)
+        if candidates:
+            run = max(candidates, key=lambda item: item["id"])
+            print(f"  run #{run['run_number']} 状态={run['status']} 结论={run.get('conclusion')}")
+            if run["status"] == "completed":
+                return run
         time.sleep(15)
     raise CiError("等待 CI 超时")
 
@@ -279,13 +293,14 @@ def main(argv: list[str] | None = None) -> int:
     ensure_initial_commit(client, owner, name)
     sha = upload_commit(client, owner, name, files, args.message)
     print(f"  已提交：{sha[:10]}")
+    dispatch_started = time.time()
     dispatch(client, owner, name)
 
     if not args.watch:
         print(f"\n已触发。查看：https://github.com/{owner}/{name}/actions")
         return 0
 
-    run = wait_for_run(client, owner, name, timeout=args.timeout)
+    run = wait_for_run(client, owner, name, timeout=args.timeout, since=dispatch_started)
     print(f"  结论：{run.get('conclusion')}  ({run['html_url']})")
     if run.get("conclusion") != "success":
         print("  CI 未成功，日志：", file=sys.stderr)
