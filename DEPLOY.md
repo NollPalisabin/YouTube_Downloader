@@ -220,7 +220,21 @@ macOS 产物分发给别人时：
 > 状态：macOS / Linux 的代码分支已有单测覆盖，但 `.app` 的真机构建与运行**尚未验证**——
 > 需要跑一次 CI 或在 Mac 上执行 `build_macos.sh` 后确认。
 
-## 12. 卸载
+## 12. 遇到「要求人机验证」怎么办
+
+YouTube 对部分 IP / 无登录态的请求会返回 `Sign in to confirm you're not a bot`。
+这不是程序故障，在**应用左侧栏「访问凭据」**里配置 cookies 即可，二选一：
+
+| 方式 | 操作 | 说明 |
+| --- | --- | --- |
+| 从浏览器读取（最省事） | 下拉选 Safari / Chrome / Edge / Firefox | 浏览器需**已登录 YouTube**。Chrome/Edge 读取前要完全退出浏览器；Safari 会请求「钥匙串」授权，macOS 还可能需要给应用「完全磁盘访问权限」 |
+| 上传 cookies.txt（最稳） | 用浏览器插件（如 Get cookies.txt LOCALLY）导出后上传 | 保存到 `~/Library/Application Support/YouTubeDownloader/cookies.txt`（Windows 为 exe 同级），界面里可随时「清除」 |
+
+配置完重新点「解析」即可。优先级：环境变量 `YTDL_COOKIES_FILE` > 界面导入的文件 > 从浏览器读取。
+
+> cookies 等同于你的登录凭据，**不要发给别人**；`.gitignore` 已排除 `cookies.txt`。
+
+## 13. 卸载
 
 1. 删除桌面快捷方式 `YouTube 下载器.lnk`；
 2. 删除目录 `D:\YouTube_Downloader`（内含下载文件与 `settings.json`，如要保留视频请先移出 `downloads\`）。
